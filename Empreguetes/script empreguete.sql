@@ -131,7 +131,7 @@ $$ LANGUAGE plpgsql;
 
 --->Update
 
-create or replace function atualizar(tabela varchar, campo varchar, valorantigo varchar, valornovo varchar)
+create or replace function atualizar(tabela text, campo text, valorantigo text, valornovo text)
   returns void as
 $$
 declare
@@ -139,12 +139,24 @@ declare
 
 begin
 
-  comando := 'update ' || $1 || ' set ' || $2 || ' = ' || $4 || ' where ' || $2 || ' = ' || $3 ||;
+  	comando := 'UPDATE ' || $1 || ' SET ' ||$2|| '= '''||$4||''''' where ' ||$2|| '= '''||$3||'''';
 
   execute comando;
 end;
 $$ language plpgsql;
 
+--->Delete
+
+create or replace function deletar(tabela text,campo text,valor text)
+returns void as $$
+  declare
+    comando text;
+    begin
+    comando:= 'delete from ' ||$1|| ' where ' ||$2|| '= '''||$3||'''';
+
+    execute comando;
+  end;
+  $$ language plpgsql;
 
 ----------------------------------------------teste função inserir------------------------------------------------------
 select inserir('funcionario', '''joaquim'',''rua 18'',''9886788776''');
@@ -154,7 +166,8 @@ select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
 select inserir('servicos', '''lavar roupa'',''25''');
 
 
-select atualizar('FUNCIONARIO','NOME_FUNCIONARIO','PAULO','pedro');
+select atualizar('FUNCIONARIO','NOME_FUNCIONARIO','joaquim','paulo');
 
-update funcionario set NOME_FUNCIONARIO = 'joaquim' where NOME_FUNCIONARIO = 'marcos';
+select deletar('funcionario','nome_funcionario','joaquim');
 
+select * from FUNCIONARIO
