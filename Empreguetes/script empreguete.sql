@@ -85,8 +85,8 @@ VALUES ('EDSON', '1312213333', 3);
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
 VALUES ('PAULO', '145345552', 1);
 
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDEREÇO, TELEFONE)
-VALUES ('ANTONIO', 'AVENIDA MIGUEL ROSA', '8798787361');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('', 'AVENIDA MIGUEL ROSA', '8798787361');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDEREÇO, TELEFONE)
 VALUES ('PABLO', 'AVENIDA FREI SERAFIM', '87876311312');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDEREÇO, TELEFONE)
@@ -128,10 +128,11 @@ END;
 
 $$ LANGUAGE plpgsql;
 
+select inserir('funcionario', ''''' ,''rua 18'',''9886788776''');
 
 --->Update
-
-create or replace function atualizar(tabela text, campo text, valorantigo text, valornovo text)
+drop function atualizar(tabela text, campo text, valorantigo text);
+create or replace function atualizar(tabela text, campo text,valornovo text,condicao text,valor_condicao text)
   returns void as
 $$
 declare
@@ -139,11 +140,14 @@ declare
 
 begin
 
-  	comando := 'UPDATE ' || $1 || ' SET ' ||$2|| '= '''||$4||''''' where ' ||$2|| '= '''||$3||'''';
-
+  comando := 'UPDATE ' || tabela || ' SET '  || $2 || ' = ' ||$3 ||' where ' || $4 || ' = ' || valor_condicao;
   execute comando;
+
 end;
 $$ language plpgsql;
+
+select atualizar('funcionario','nome_funcionario','''junior''','id_funcionario','5');
+
 
 --->Delete
 
@@ -158,16 +162,67 @@ returns void as $$
   end;
   $$ language plpgsql;
 
+
+
+---------------------------------------------Trigger--------------------------------------------------------------------
+----- feedback
+CREATE TRIGGER TGR_FEEDBACK_OPERACAO
+  AFTER INSERT OR
+  UPDATE OR DELETE
+  ON funcionario
+  FOR EACH ROW EXECUTE PROCEDURE FEEDBACK_OPERACAO();
+
+DROP FUNCTION FEEDBACK_OPERACAO() CASCADE;
+
+CREATE OR REPLACE FUNCTION FEEDBACK_OPERACAO()
+  RETURNS TRIGGER AS
+$$
+
+DECLARE
+BEGIN
+  IF (TG_OP = 'INSERT')
+  THEN
+    RAISE NOTICE 'INSERCAO FEITA COM SUCESSO!';
+  END IF;
+  IF (TG_OP = 'UPDATE')
+  THEN
+    RAISE NOTICE 'ALTERACAO FEITA COM SUCESSO!';
+  END IF;
+  IF (TG_OP = 'DELETE')
+  THEN
+    RAISE NOTICE 'DELETADO COM SUCESSO!';
+  END IF;
+  RETURN NULL ;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+----------
+
+create or replace function notvaluesnull()
+returns trigger as $$
+  begin
+    if new.nome_funcionario  is null  or new.NOME_FUNCIONARIO = '' then
+    raise exception 'nome nulo';
+    end if;
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnull();
+drop trigger notnullfunc on funcionario cascade ;
 ----------------------------------------------teste função inserir------------------------------------------------------
-select inserir('funcionario', '''joaquim'',''rua 18'',''9886788776''');
-select inserir('categoria_cliente', '''platina'',''90''');
+select inserir('funcionario', ''''' ,''rua 18'',''98867887731231''');
+select inserir('categoria_cliente', '''platina3'',''90''');
 select inserir('cliente', '''henrique'',''9098877889'',''1''');
 select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
 select inserir('servicos', '''lavar roupa'',''25''');
 
+insert into FUNCIONARIO values (default,'','rua20','65767565765');
 
-select atualizar('FUNCIONARIO','NOME_FUNCIONARIO','joaquim','paulo');
+select deletar('funcionario','nome_funcionario','');
 
-select deletar('funcionario','nome_funcionario','joaquim');
 
-select * from FUNCIONARIO
+select * from funcionario
