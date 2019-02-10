@@ -174,26 +174,39 @@ create or replace function criar_ordem_de_servico(NOME_CLIENTE_V varchar(100),NO
 NOME_DIARISTA_V varchar(100),DATA date,HORA time,NOME_SERVICO_V VARCHAR(100)) returns void as $$
   declare
     var_id_cliente int;
+    var_id_categoria_cliente int;
     var_id_funcionario int;
     var_id_diarista int;
     var_id_servico int;
     var_valor_servico float;
+    var_valor_servico_com_desconto float;
+    var_valor_desconto float;
+
 
   begin
 
-    SELECT ID_CLIENTE INTO var_id_cliente FROM CLIENTE WHERE NOME_CLIENTE_V ILIKE NOME_CLIENTE;
+    SELECT ID_CLIENTE,CATEGORIA_CLIENTE INTO var_id_cliente,var_id_categoria_cliente
+    FROM CLIENTE WHERE NOME_CLIENTE_V ILIKE NOME_CLIENTE;
+
+    SELECT DESCONTO INTO var_valor_desconto FROM CATEGORIA_CLIENTE WHERE ID_CATEGORIA = var_id_categoria_cliente;
+
     SELECT ID_FUNCIONARIO INTO var_id_funcionario FROM FUNCIONARIO WHERE NOME_FUNCIONARIO_V ILIKE NOME_FUNCIONARIO;
+
     SELECT ID_DIARISTA INTO var_id_diarista FROM DIARISTA WHERE NOME_DIARISTA_V ILIKE NOME_DIARISTA;
+
     SELECT ID_SERVICO,VALOR_SERVICO INTO var_id_servico,var_valor_servico FROM SERVICOS WHERE NOME_SERVICO_V ILIKE NOME_SERVICO;
 
+    var_valor_servico_com_desconto:= var_valor_servico - (var_valor_servico*var_valor_desconto);
+
     INSERT INTO ORDEM_DE_SERVICO VALUES (DEFAULT,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,var_id_servico,
-                                         var_valor_servico);
+                                         var_valor_servico_com_desconto);
 
   end;
   $$ LANGUAGE plpgsql;
 
 select criar_ordem_de_servico('edson','pablo','maria','12-12-2018','12:30','COZINHAR');
 ---------------------------------------------Trigger--------------------------------------------------------------------
+
 ----- feedback
 CREATE TRIGGER TGR_FEEDBACK_OPERACAO
   AFTER INSERT OR
