@@ -250,9 +250,9 @@ returns trigger as $$
   $$language plpgsql;
 
 create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnull();
-                                                                        
-                                                                        
-                                                                        
+
+
+
 ---->>>Duplicidade de dados
 -->Cliente
 CREATE TRIGGER duplicidade
@@ -356,6 +356,35 @@ $$
 language plpgsql;
 
 SELECT * FROM FUNCIONARIO;
+
+
+-->Descontos
+
+CREATE TRIGGER valor_negativo
+  BEFORE INSERT OR UPDATE
+  ON CATEGORIA_CLIENTE
+  FOR EACH ROW EXECUTE PROCEDURE valor_negativo();
+
+CREATE OR REPLACE FUNCTION valor_negativo()
+  RETURNS TRIGGER AS $$
+DECLARE
+BEGIN
+  IF (TG_TABLE_NAME = 'CATEGORIA_CLIENTE' or TG_TABLE_NAME = 'categoria_cliente')
+  THEN
+    IF NEW.DESCONTO < 0
+    then
+      RAISE EXCEPTION 'VOCE NÃO PODE INSERIR QUANTIDADE MENOR QUE 0';
+    END IF;
+    END IF ;
+    RETURN NEW;
+  END;
+$$
+LANGUAGE plpgsql;
+
+
+select inserir('categoria_cliente', '''platina4'',''-30''');
+
+
 ----------------------------------------------teste função inserir------------------------------------------------------
 select inserir('funcionario', ''''' ,''rua 18'',''98867887731231''');
 select inserir('categoria_cliente', '''platina3'',''90''');
