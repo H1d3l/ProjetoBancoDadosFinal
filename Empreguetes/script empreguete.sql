@@ -44,20 +44,13 @@ CREATE TABLE ORDEM_DE_SERVICO
   CLIENTE        INT REFERENCES CLIENTE (ID_CLIENTE),
   FUNCIONARIO    INT REFERENCES FUNCIONARIO (ID_FUNCIONARIO),
   DIARISTA INT REFERENCES DIARISTA(ID_DIARISTA),
-  DATA              DATE  NOT NULL,
-  HORA              TIME  NOT NULL,
+  DATA_SOLICITACAO              DATE  NOT NULL,
+  HORA_SOLICITACAO              TIME  NOT NULL,
   SERVICO INT REFERENCES SERVICOS(ID_SERVICO),
   VALOR_TOTAL FLOAT NOT NULL
 );
 
-CREATE TABLE ITEM_ORDEM_DE_SERVICO
-(
-  ID_ITEM_ORDEM_DE_SERVICO SERIAL UNIQUE PRIMARY KEY,
-  ORDEM_DE_SERVICO INT REFERENCES ORDEM_DE_SERVICO(ID_ORDEM_DE_SERVICO),
-  SERVICO INT REFERENCES SERVICOS(ID_SERVICO),
-  VALOR INT NOT NULL
 
-);
 CREATE TABLE DIARISTA_SERVICO
 (
   ID_DIARISTA INT REFERENCES DIARISTA (ID_DIARISTA),
@@ -75,7 +68,7 @@ INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
 VALUES ('OURO', 0.5);
 
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, CATEGORIA_CLIENTE)
-VALUES ('JOÃO', '998500295', 1);
+VALUES ('eqweq', '', null);
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, CATEGORIA_CLIENTE)
 VALUES ('PEDRO', '998657901', 2);
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, CATEGORIA_CLIENTE)
@@ -88,7 +81,7 @@ INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, CATEGORIA_CLIENTE)
 VALUES ('PAULO', '145345552', 1);
 
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('', 'AVENIDA MIGUEL ROSA', '8798787361');
+VALUES ('Hidel', 'AVENIDA MIGUEL ROSA', '');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
 VALUES ('PABLO', 'AVENIDA FREI SERAFIM', '87876311312');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
@@ -116,6 +109,9 @@ INSERT INTO SERVICOS VALUES (DEFAULT,'LAVAR',20.00);
 INSERT INTO SERVICOS VALUES (DEFAULT,'COZINHAR',30.00);
 INSERT INTO SERVICOS VALUES (DEFAULT,'PASSAR',50.00);
 INSERT INTO SERVICOS VALUES (DEFAULT,'SERVICO COMPLETO',110.00);
+
+INSERT INTO DIARISTA_SERVICO VALUES (2,8);
+
 
 -------------------------------------------------- Funções -------------------------------------------------------------
   ---> Inserir
@@ -168,6 +164,8 @@ returns void as $$
   end;
   $$ language plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------
 -----Criar ordem de servico
 
 create or replace function criar_ordem_de_servico(NOME_CLIENTE_V varchar(100),NOME_FUNCIONARIO_V varchar(100),
@@ -187,14 +185,11 @@ NOME_DIARISTA_V varchar(100),DATA date,HORA time,NOME_SERVICO_V VARCHAR(100)) re
 
     SELECT ID_CLIENTE,CATEGORIA_CLIENTE INTO var_id_cliente,var_id_categoria_cliente
     FROM CLIENTE WHERE NOME_CLIENTE_V ILIKE NOME_CLIENTE;
-
     SELECT DESCONTO INTO var_valor_desconto FROM CATEGORIA_CLIENTE WHERE ID_CATEGORIA = var_id_categoria_cliente;
-
     SELECT ID_FUNCIONARIO INTO var_id_funcionario FROM FUNCIONARIO WHERE NOME_FUNCIONARIO_V ILIKE NOME_FUNCIONARIO;
+    SELECT ID_SERVICO,VALOR_SERVICO INTO var_id_servico,var_valor_servico FROM SERVICOS WHERE NOME_SERVICO_V ILIKE NOME_SERVICO;
 
     SELECT ID_DIARISTA INTO var_id_diarista FROM DIARISTA WHERE NOME_DIARISTA_V ILIKE NOME_DIARISTA;
-
-    SELECT ID_SERVICO,VALOR_SERVICO INTO var_id_servico,var_valor_servico FROM SERVICOS WHERE NOME_SERVICO_V ILIKE NOME_SERVICO;
 
     var_valor_servico_com_desconto:= var_valor_servico - (var_valor_servico*var_valor_desconto);
 
@@ -237,22 +232,139 @@ LANGUAGE plpgsql;
 
 
 ------------------------------------------------------------------------------------------------------------------------
--------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS
-create or replace function notvaluesnull()
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
+create or replace function notvaluesnullcategoriacliente()
 returns trigger as $$
   begin
-    if new is null  or new = '' then
-    raise exception 'CAMPO COM VALOR NULO OU VAZIO';
-    end if;
+    if new.NOME_CATEGORIA is null  or new.NOME_CATEGORIA = '' then
+    raise exception 'Nome da categoria está vazio ou nulo';
+    end if ;
+
+    if new.DESCONTO is null  or new.DESCONTO = '' then
+    raise exception 'Desconto está vazio ou nulo';
+    end if ;
     return null;
   end;
 
   $$language plpgsql;
 
-create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnull();
-                                                                        
-                                                                        
-                                                                        
+create  trigger notnullcategoriacliente before insert or update on CATEGORIA_CLIENTE  FOR EACH ROW
+EXECUTE PROCEDURE notvaluesnullcategoriacliente();
+
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CLIENTE
+create or replace function notvaluesnullcliente()
+returns trigger as $$
+  begin
+    if new.NOME_CLIENTE is null  or new.NOME_CLIENTE = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+
+    if new.CATEGORIA_CLIENTE is null  or new.CATEGORIA_CLIENTE = '' then
+    raise exception 'Categoria do cliente está vazio ou nulo';
+    end if ;
+
+
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullcliente before insert or update on CLIENTE  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullcliente();
+
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE DIARISTA
+create or replace function notvaluesnulldiarista()
+returns trigger as $$
+  begin
+    if new.NOME_DIARISTA is null  or new.NOME_DIARISTA = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.ENDERECO is null  or new.ENDERECO = '' then
+    raise exception 'Endereco está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+
+    return null;
+  end;
+  $$language plpgsql;
+
+create  trigger notnulldiarista before insert or update on DIARISTA  FOR EACH ROW EXECUTE PROCEDURE notvaluesnulldiarista();
+----------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE DIARISTA SERVICO
+---AJEITAR
+create or replace function notvaluesnulldiaristaservico()
+returns trigger as $$
+  begin
+    if new.id_diarista is null  or new.id_diarista = '' then
+    raise exception 'Id diarista está vazio ou nulo';
+    end if ;
+
+    if new.id_servico is null  or new.id_servico = '' then
+    raise exception 'Id servico está vazio ou nulo';
+    end if ;
+
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnulldiaristaservico before insert or update on DIARISTA_SERVICO  FOR EACH ROW
+EXECUTE PROCEDURE notvaluesnulldiaristaservico();
+
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+create or replace function notvaluesnullfuncionario()
+returns trigger as $$
+  begin
+    if new.NOME_FUNCIONARIO is null  or new.NOME_FUNCIONARIO = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.ENDERECO is null  or new.ENDERECO = '' then
+    raise exception 'Endereco está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullfuncionario();
+
+
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+create or replace function notvaluesnullservico()
+returns trigger as $$
+  begin
+    if new.NOME_SERVICO is null  or new.NOME_SERVICO = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.VALOR is null  or new.VALOR = '' then
+    raise exception 'Valor está vazio ou nulo';
+    end if ;
+
+    if new.VALOR <= 0 then
+    raise exception 'Valor está negativo';
+    end if ;
+
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullservico();
+
+drop trigger notnulldiaristaservico ON DIARISTA_SERVICO
 ---->>>Duplicidade de dados
 -->Cliente
 CREATE TRIGGER duplicidade
