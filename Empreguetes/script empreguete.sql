@@ -237,6 +237,112 @@ returns trigger as $$
   $$language plpgsql;
 
 create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnull();
+                                                                        
+                                                                        
+                                                                        
+---->>>Duplicidade de dados
+-->Cliente
+CREATE TRIGGER duplicidade
+  BEFORE INSERT OR UPDATE
+  ON CLIENTE
+  FOR EACH ROW EXECUTE PROCEDURE duplicidade();
+CREATE OR REPLACE FUNCTION duplicidade()
+  RETURNS TRIGGER AS $$
+begin
+  IF EXISTS(SELECT *
+            FROM CLIENTE
+            WHERE NOME_CLIENTE = NEW.NOME_CLIENTE
+              AND TELEFONE = NEW.TELEFONE
+              AND ID_CATEGORIA_CLIENTE = NEW.ID_CATEGORIA_CLIENTE)
+  THEN
+    RAISE EXCEPTION 'Atenção!Cliente já cadastrado';
+  end if;
+  RETURN NEW;
+end;
+$$
+language plpgsql;
+
+-->Funcionario
+CREATE TRIGGER duplicidade_func
+  BEFORE INSERT OR UPDATE
+  ON FUNCIONARIO
+  FOR EACH ROW EXECUTE PROCEDURE duplicidade_func();
+CREATE OR REPLACE FUNCTION duplicidade_func()
+  RETURNS TRIGGER AS $$
+begin
+  IF EXISTS(SELECT *
+            FROM FUNCIONARIO
+            WHERE NOME_FUNCIONARIO = NEW.NOME_FUNCIONARIO
+              AND ENDERECO = NEW.ENDERECO
+              AND TELEFONE = NEW.TELEFONE)
+  THEN
+    RAISE EXCEPTION 'Atenção!Funcionario já cadastrado';
+  end if;
+  RETURN NEW;
+end;
+$$
+language plpgsql;
+-->Diarista
+CREATE TRIGGER duplicidade_diar
+  BEFORE INSERT OR UPDATE
+  ON DIARISTA
+  FOR EACH ROW EXECUTE PROCEDURE duplicidade_diar();
+CREATE OR REPLACE FUNCTION duplicidade_diar()
+  RETURNS TRIGGER AS $$
+begin
+  IF EXISTS(SELECT *
+            FROM DIARISTA
+            WHERE NOME_DIARISTA = NEW.NOME_DIARISTA
+              AND ENDERECO = NEW.ENDERECO
+              AND TELEFONE = NEW.TELEFONE)
+  THEN
+    RAISE EXCEPTION 'Atenção!Diarista já cadastrado';
+  end if;
+  RETURN NEW;
+end;
+$$
+language plpgsql;
+-->Servicos
+CREATE TRIGGER duplicidade_serv
+  BEFORE INSERT OR UPDATE
+  ON SERVICOS
+  FOR EACH ROW EXECUTE PROCEDURE duplicidade_serv();
+CREATE OR REPLACE FUNCTION duplicidade_serv()
+  RETURNS TRIGGER AS $$
+begin
+  IF EXISTS(SELECT *
+            FROM SERVICOS
+            WHERE NOME_SERVICO = NEW.NOME_SERVICO
+              AND VALOR_SERVICO = NEW.VALOR_SERVICO)
+  THEN
+    RAISE EXCEPTION 'Atenção!Serviço já cadastrado';
+  end if;
+  RETURN NEW;
+end;
+$$
+language plpgsql;
+
+-->Categorias
+CREATE TRIGGER duplicidade_cat
+  BEFORE INSERT OR UPDATE
+  ON CATEGORIA_CLIENTE
+  FOR EACH ROW EXECUTE PROCEDURE duplicidade_cat();
+CREATE OR REPLACE FUNCTION duplicidade_cat()
+  RETURNS TRIGGER AS $$
+begin
+  IF EXISTS(SELECT *
+            FROM CATEGORIA_CLIENTE
+            WHERE NOME_CATEGORIA = NEW.NOME_CATEGORIA
+              AND DESCONTO = NEW.DESCONTO)
+  THEN
+    RAISE EXCEPTION 'Atenção!Categoria já cadastrada';
+  end if;
+  RETURN NEW;
+end;
+$$
+language plpgsql;
+
+SELECT * FROM FUNCIONARIO;
 ----------------------------------------------teste função inserir------------------------------------------------------
 select inserir('funcionario', ''''' ,''rua 18'',''98867887731231''');
 select inserir('categoria_cliente', '''platina3'',''90''');
