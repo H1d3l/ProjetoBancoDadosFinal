@@ -41,15 +41,17 @@ CREATE TABLE SERVICOS
 CREATE TABLE ORDEM_DE_SERVICO
 (
   ID_ORDEM_DE_SERVICO    SERIAL UNIQUE PRIMARY KEY,
-  CLIENTE        INT REFERENCES CLIENTE (ID_CLIENTE),
-  FUNCIONARIO    INT REFERENCES FUNCIONARIO (ID_FUNCIONARIO),
-  DIARISTA INT REFERENCES DIARISTA(ID_DIARISTA),
-  DATA_SOLICITACAO              DATE  NOT NULL,
-  HORA_SOLICITACAO              TIME  NOT NULL,
-  SERVICO INT REFERENCES SERVICOS(ID_SERVICO),
+  ID_CLIENTE        INT REFERENCES CLIENTE (ID_CLIENTE),
+  ID_FUNCIONARIO    INT REFERENCES FUNCIONARIO (ID_FUNCIONARIO),
+  ID_DIARISTA INT REFERENCES DIARISTA(ID_DIARISTA),
+  DATA_SERVICO              DATE  NOT NULL,
+  HORA_SERVICO              TIME  NOT NULL,
+  ID_SERVICO INT REFERENCES SERVICOS(ID_SERVICO),
+  ENDERECO VARCHAR(200) NOT NULL,
+  STATUS VARCHAR(10) NOT NULL,
   VALOR_TOTAL FLOAT NOT NULL
 );
-
+INSERT INTO ORDEM_DE_SERVICO VALUES (DEFAULT,1,3,2,'2019-02-01','13:10:02',2,'RUA AHDIASDIUAS','AGENDADO',40.00);
 
 CREATE TABLE DIARISTA_SERVICO
 (
@@ -110,10 +112,20 @@ INSERT INTO SERVICOS VALUES (DEFAULT,'COZINHAR',30.00);
 INSERT INTO SERVICOS VALUES (DEFAULT,'PASSAR',50.00);
 INSERT INTO SERVICOS VALUES (DEFAULT,'SERVICO COMPLETO',110.00);
 
-INSERT INTO DIARISTA_SERVICO VALUES (2,8);
+INSERT INTO DIARISTA_SERVICO VALUES (1,2);
+INSERT INTO DIARISTA_SERVICO VALUES (2,1);
+INSERT INTO DIARISTA_SERVICO VALUES (3,3);
+INSERT INTO DIARISTA_SERVICO VALUES (4,4);
 
+
+
+----------------------------------------------------Views---------------------------------------------------------------
+
+CREATE OR REPLACE VIEW AGENDAMENTO AS SELECT DIARISTA,DATA_SERVICO,HORA_SERVICO,STATUS FROM ORDEM_DE_SERVICO;
 
 -------------------------------------------------- Funções -------------------------------------------------------------
+
+create or replace function verificar_disponibilidade(data date, hora time,diarista varchar(100)) returns
   ---> Inserir
 CREATE OR REPLACE FUNCTION INSERIR(TABELA TEXT, VALOR TEXT)
   RETURNS VOID AS
@@ -166,10 +178,33 @@ returns void as $$
 ------------------------------------------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------------------------------------------
------Criar ordem de servico
 
-create or replace function criar_ordem_de_servico(NOME_CLIENTE_V varchar(100),NOME_FUNCIONARIO_V varchar(100),
-NOME_DIARISTA_V varchar(100),DATA date,HORA time,NOME_SERVICO_V VARCHAR(100)) returns void as $$
+create or replace function checkIfHasOrderForThisTime(date date, hour time,var_id_diarista integer,
+ var_id_servico integer) returns boolean as $$
+
+  begin
+    if exists(select * from ORDEM_DE_SERVICO o, DIARISTA d, DIARISTA_SERVICO ds, SERVICOS s where o.diarista=d.id_diarista
+                                                                                    and d.id_diarista=ds.id_diarista
+                                                                                    and ds.id_servico=s.id_servico
+                                                                                    and o.diarista=$3
+                                                                                    and o.servico=$4
+                                                                                    and o.DATA_SERVICO = date
+                                                                                    and o.HORA_SERVICO = hour) then
+      return true;
+
+      else
+
+        return false;
+
+      end if ;
+
+  end;$$language plpgsql;
+
+select checkIfHasOrderForThisTime('2019-02-01','13:10:02', 8, 2);
+
+create or replace function criar_ordem_de_servico(NOME_CLIENTE_V varchar(100),NOME_FUNCIONARIO_V varchar(100)
+,DATA date,HORA time,NOME_SERVICO_V VARCHAR(100),STATUS VARCHAR(30)) returns void as $$
+
   declare
     var_id_cliente int;
     var_id_categoria_cliente int;
@@ -189,17 +224,18 @@ NOME_DIARISTA_V varchar(100),DATA date,HORA time,NOME_SERVICO_V VARCHAR(100)) re
     SELECT ID_FUNCIONARIO INTO var_id_funcionario FROM FUNCIONARIO WHERE NOME_FUNCIONARIO_V ILIKE NOME_FUNCIONARIO;
     SELECT ID_SERVICO,VALOR_SERVICO INTO var_id_servico,var_valor_servico FROM SERVICOS WHERE NOME_SERVICO_V ILIKE NOME_SERVICO;
 
-    SELECT ID_DIARISTA INTO var_id_diarista FROM DIARISTA WHERE NOME_DIARISTA_V ILIKE NOME_DIARISTA;
+
 
     var_valor_servico_com_desconto:= var_valor_servico - (var_valor_servico*var_valor_desconto);
-
+    
     INSERT INTO ORDEM_DE_SERVICO VALUES (DEFAULT,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,var_id_servico,
                                          var_valor_servico_com_desconto);
 
   end;
   $$ LANGUAGE plpgsql;
 
-select criar_ordem_de_servico('edson','pablo','maria','12-12-2018','12:30','COZINHAR');
+
+select criar_ordem_de_servico('edson','pablo','12-12-2018','12:30','COZINHAR','AGENDADO');
 ---------------------------------------------Trigger--------------------------------------------------------------------
 
 ----- feedback
