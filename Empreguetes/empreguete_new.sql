@@ -1,3 +1,6 @@
+drop schema shema_empreguete_new cascade ;
+create schema shema_empreguete_new;
+
 CREATE TABLE CATEGORIA_CLIENTE
 (
   ID_CATEGORIA   SERIAL UNIQUE PRIMARY KEY,
@@ -53,55 +56,6 @@ CREATE TABLE ITEM_ORDEM_DE_SERVICO
   VALOR                    INT NOT NULL
 );
 
----------------------------------------------------Povoamento-----------------------------------------------------------
-INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('BRONZE', 0.1);
-INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('PRATA', 0.3);
-INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('OURO', 0.5);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('JOÃO', '998500295', 1);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('PEDRO', '998657901', 2);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('RICARDO', '5132715375', 3);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('CONCEIÇÃO', '1231242615', 2);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('EDSON', '1312213333', 3);
-INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
-VALUES ('PAULO', '145345552', 1);
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('', 'AVENIDA MIGUEL ROSA', '8798787361');
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('PABLO', 'AVENIDA FREI SERAFIM', '87876311312');
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('CHICO', 'RUA TERESINHA', '9876546889');
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('WANESSA', 'AVENIDA PIREZ DE CASTRO', '9897909876');
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('DEBORA', 'RUA 100', '8798731132');
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('JUVENAL', 'RUA 90', '9876588990');
-INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
-VALUES ('MARIA', 'BAIRRO FLORES', '123123877');
-INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
-VALUES ('JOANA', 'BAIRRO ININGA', '323131311');
-INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
-VALUES ('HELCIO', 'BAIRRO PORTO ALEGRE', '0869909888');
-INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
-VALUES ('JESSICA', 'BAIRRO HORTO', '445323113');
-INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
-VALUES ('BRUNO', 'BAIRRO DIRCEU', '123123877');
-INSERT INTO SERVICOS
-VALUES (DEFAULT, 'VARRER ', 20.00);
-INSERT INTO SERVICOS
-VALUES (DEFAULT, 'LAVAR', 20.00);
-INSERT INTO SERVICOS
-VALUES (DEFAULT, 'COZINHAR', 30.00);
-INSERT INTO SERVICOS
-VALUES (DEFAULT, 'PASSAR', 50.00);
 -------------------------------------------------- Funções Genericas----------------------------------------------------
   ---> Inserir
 CREATE OR REPLACE FUNCTION INSERIR(TABELA TEXT, VALOR TEXT)
@@ -110,16 +64,13 @@ $$
 DECLARE
   COMANDO TEXT;
 BEGIN
-  COMANDO := 'INSERT INTO ' || $1 || ' VALUES(DEFAULT,' || $2 ||
-             ');';
+  COMANDO := 'INSERT INTO ' || $1 || ' VALUES(DEFAULT,' || $2 ||');';
   EXECUTE COMANDO;
+
 END;
 $$ LANGUAGE plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
-select inserir('funcionario', ''''' ,''rua 18'',''9886788776''');
-------------------------------------------------------------------------------------------------------------------------
 --->Update
-drop function atualizar(tabela text, campo text, valorantigo text);
 ------------------------------------------------------------------------------------------------------------------------
 create or replace function atualizar(tabela text, campo text, valornovo text, condicao text, valor_condicao text)
   returns void as
@@ -127,15 +78,12 @@ $$
 declare
   comando TEXT;
 begin
-  comando := 'UPDATE ' || tabela || ' SET ' || $2 || ' = ' || $3 || '
-where ' || $4 || ' = ' || valor_condicao;
+  comando := 'UPDATE ' || tabela || ' SET ' || $2 || ' = ' || $3 || 'where ' || $4 || ' = ' || valor_condicao;
   execute comando;
 end;
 $$ language plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
-select atualizar('funcionario', 'nome_funcionario', '''junior''', 'id_funciona
-rio', '5');
-------------------------------------------------------------------------------------------------------------------------
+
 --->Delete
 create or replace function deletar(tabela text, campo text, valor
   text)
@@ -149,24 +97,6 @@ begin
 end;
 $$ language plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','PASSAR');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','COZINHAR');
-
-
-
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','PASSAR');
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','VARRER');
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','LAVAR');
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','COZINHAR');
-
-
-select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','PASSAR');
-select criar_ordem_de_servico(3,'JOÃO', 'CHICO', 'maria', '12-12-2017', '11:30','VARRER');
-select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','');
-
-
 
 
 --------------> CRIAR ORDEM DE SERVIÇO:
@@ -214,13 +144,14 @@ $$
       IF (NOME_CLI IS NOT NULL AND NOME_FUN IS NOT NULL AND NOME_SERV IS NOT NULL) THEN
         IF (EXISTS(SELECT * FROM ORDEM_DE_SERVICO WHERE ID_ORDEM_DE_SERVICO=ID_ORDEM_SERV)) THEN
 
-          INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,ID_ORDEM_SERV,var_id_servico,preco_total);
-          UPDATE ORDEM_DE_SERVICO SET VALOR_TOTAL = (SELECT SUM(VALOR) FROM ITEM_ORDEM_DE_SERVICO WHERE ID_ORDEM_SERV
+          INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,ID_ORDEM_SERV,var_id_servico,var_valor_servico);
+
+          UPDATE ORDEM_DE_SERVICO SET VALOR_TOTAL = (SELECT SUM(VALOR)-(SUM(VALOR)*var_valor_desconto) FROM ITEM_ORDEM_DE_SERVICO WHERE ID_ORDEM_SERV
             = ID_ORDEM_DE_SERVICO) WHERE ID_ORDEM_DE_SERVICO = ID_ORDEM_SERV;
           RETURN 'MAIS UM SERVICO ADICIONADO A ORDEM DE SERVICO';
         ELSE
           INSERT INTO ORDEM_DE_SERVICO VALUES($1,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,preco_total,'AGENDADO');
-          INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,$1,var_id_servico,preco_total);
+          INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,$1,var_id_servico,var_valor_servico);
           RETURN 'SOLICITACAO DA ORDEM DE SERVICO INICIADO';
         END IF;
       ELSE
@@ -233,8 +164,6 @@ $$LANGUAGE plpgsql;
 
 ---------------------------------------------Trigger--------------------------------------------------------------------
   -------------------------------------------feedback-------------------------------------------------------------------
-CREATE TRIGGER TGR_FEEDBACK_OPERACAO  AFTER INSERT OR UPDATE OR DELETE ON funcionario FOR EACH ROW
-EXECUTE PROCEDURE FEEDBACK_OPERACAO();
 
 CREATE OR REPLACE FUNCTION FEEDBACK_OPERACAO() RETURNS TRIGGER AS
 $$
@@ -256,95 +185,11 @@ BEGIN
 END;
 $$
   LANGUAGE plpgsql;
+CREATE TRIGGER TGR_FEEDBACK_OPERACAO  AFTER INSERT OR UPDATE OR DELETE ON funcionario FOR EACH ROW
+EXECUTE PROCEDURE FEEDBACK_OPERACAO();
 ------------------------------------------------------------------------------------------------------------------------
-
----->>>Duplicidade de dados-->Cliente
-CREATE TRIGGER duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH ROW EXECUTE PROCEDURE duplicidade();
-
-CREATE OR REPLACE FUNCTION duplicidade() RETURNS TRIGGER AS
-$$
-begin
-  IF EXISTS(SELECT *
-            FROM CLIENTE
-            WHERE NOME_CLIENTE = NEW.NOME_CLIENTE
-              AND TELEFONE = NEW.TELEFONE
-              AND ID_CATEGORIA_CLIENTE = NEW.ID_CATEGORIA_CLIENTE)
-  THEN
-    RAISE EXCEPTION 'Atenção!Cliente já cadastrado';
-  end if;
-  RETURN NEW;
-end;
-$$
-  language plpgsql;
--->Funcionario
-CREATE TRIGGER duplicidade_func BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE duplicidade_func();
-CREATE OR REPLACE FUNCTION duplicidade_func() RETURNS TRIGGER AS
-$$
-begin
-  IF EXISTS(SELECT *
-            FROM FUNCIONARIO
-            WHERE NOME_FUNCIONARIO = NEW.NOME_FUNCIONARIO
-              AND ENDERECO = NEW.ENDERECO
-              AND TELEFONE = NEW.TELEFONE)
-  THEN
-    RAISE EXCEPTION 'Atenção!Funcionario já cadastrado';
-  end if;
-  RETURN NEW;
-end;
-$$
-  language plpgsql;
--->Diarista
-CREATE TRIGGER duplicidade_diar BEFORE INSERT OR UPDATE ON DIARISTA FOR EACH ROW EXECUTE PROCEDURE duplicidade_diar();
-CREATE OR REPLACE FUNCTION duplicidade_diar() RETURNS TRIGGER AS
-$$
-begin
-  IF EXISTS(SELECT *
-            FROM DIARISTA
-            WHERE NOME_DIARISTA = NEW.NOME_DIARISTA
-              AND ENDERECO = NEW.ENDERECO
-              AND TELEFONE = NEW.TELEFONE)
-  THEN
-    RAISE EXCEPTION 'Atenção!Diarista já cadastrado';
-  end if;
-  RETURN NEW;
-end;
-$$
-  language plpgsql;
--->Servicos
-CREATE TRIGGER duplicidade_serv BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE duplicidade_serv();
-CREATE OR REPLACE FUNCTION duplicidade_serv() RETURNS TRIGGER AS
-$$
-begin
-  IF EXISTS(SELECT *
-            FROM SERVICOS
-            WHERE NOME_SERVICO = NEW.NOME_SERVICO
-              AND VALOR_SERVICO = NEW.VALOR_SERVICO)
-  THEN
-    RAISE EXCEPTION 'Atenção!Serviço já cadastrado';
-  end if;
-  RETURN NEW;
-end;
-$$
-  language plpgsql;
--->Categorias
-CREATE TRIGGER duplicidade_cat BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE duplicidade_cat();
-CREATE OR REPLACE FUNCTION duplicidade_cat() RETURNS TRIGGER AS
-$$
-begin
-  IF EXISTS(SELECT *
-            FROM CATEGORIA_CLIENTE
-            WHERE NOME_CATEGORIA = NEW.NOME_CATEGORIA
-              AND DESCONTO = NEW.DESCONTO)
-  THEN
-    RAISE EXCEPTION 'Atenção!Categoria já cadastrada';
-  end if;
-  RETURN NEW;
-end;
-$$
-  language plpgsql;
-
 -->Descontos
-CREATE TRIGGER valor_negativo BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE valor_negativo();
+
 CREATE OR REPLACE FUNCTION valor_negativo() RETURNS TRIGGER AS
 $$
 DECLARE
@@ -361,16 +206,8 @@ BEGIN
 END;
 $$
   LANGUAGE plpgsql;
+CREATE TRIGGER valor_negativo BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE valor_negativo();
 
-select inserir('categoria_cliente', '''platina4'',''-30''');
-----------------------------------------------teste função--------------------------------------------------------------
-select inserir('funcionario', ''''' ,''rua 18'',''98867887731231''');
-select inserir('categoria_cliente', '''platina3'',''90''');
-select inserir('cliente', '''henrique'',''9098877889'',''1''');
-select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
-select inserir('servicos', '''lavar roupa'',''25''');
-select deletar('funcionario', 'nome_funcionario', '');
-------------------------------------------------------------------------------------------------------------------------
 
 --------------> VERIFICAR DISPONIBILIDADE DE DIARISTA:
 CREATE OR REPLACE FUNCTION verifica_disponibilidade() RETURNS TRIGGER AS
@@ -378,7 +215,8 @@ $$
 BEGIN
   IF (EXISTS(SELECT *
              FROM ordem_de_servico
-             WHERE id_diarista = NEW.id_diarista
+             WHERE ID_ORDEM_DE_SERVICO <> new.ID_ORDEM_DE_SERVICO
+               AND id_diarista = NEW.id_diarista
                AND data = NEW.data
                AND hora = NEW.hora
                and status = 'AGENDADO')) THEN
@@ -387,6 +225,7 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 CREATE TRIGGER verifica_disponibilidade BEFORE INSERT OR UPDATE ON ordem_de_servico FOR EACH ROW
 EXECUTE PROCEDURE verifica_disponibilidade();
 
@@ -410,6 +249,7 @@ BEGIN
   SELECT alterar_status('CANCELADO', $1) INTO retornar;
 END;
 $$ LANGUAGE 'plpgsql';
+
 
 --------------> ALTERAR STATUS DA SOLICITAÇÃO DE SERVIÇO:
 CREATE OR REPLACE FUNCTION alterar_status(status TEXT, id_alterar INT)
@@ -490,3 +330,189 @@ CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH 
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
+create or replace function notvaluesnullcategoriacliente()
+returns trigger as $$
+  begin
+    if new.NOME_CATEGORIA is null  or new.NOME_CATEGORIA = '' then
+    raise exception 'Nome da categoria está vazio ou nulo';
+    end if ;
+
+    if new.DESCONTO is null  or new.DESCONTO = '' then
+    raise exception 'Desconto está vazio ou nulo';
+    end if ;
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullcategoriacliente before insert or update on CATEGORIA_CLIENTE  FOR EACH ROW
+EXECUTE PROCEDURE notvaluesnullcategoriacliente();
+------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CLIENTE
+create or replace function notvaluesnullcliente()
+returns trigger as $$
+  begin
+    if new.NOME_CLIENTE is null  or new.NOME_CLIENTE = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+
+    if new.CATEGORIA_CLIENTE is null  or new.CATEGORIA_CLIENTE = '' then
+    raise exception 'Categoria do cliente está vazio ou nulo';
+    end if ;
+
+
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullcliente before insert or update on CLIENTE  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullcliente();
+-------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE DIARISTA
+create or replace function notvaluesnulldiarista()
+returns trigger as $$
+  begin
+    if new.NOME_DIARISTA is null  or new.NOME_DIARISTA = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.ENDERECO is null  or new.ENDERECO = '' then
+    raise exception 'Endereco está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+
+    return null;
+  end;
+  $$language plpgsql;
+
+create  trigger notnulldiarista before insert or update on DIARISTA  FOR EACH ROW EXECUTE PROCEDURE notvaluesnulldiarista();
+----------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+create or replace function notvaluesnullfuncionario()
+returns trigger as $$
+  begin
+    if new.NOME_FUNCIONARIO is null  or new.NOME_FUNCIONARIO = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.ENDERECO is null  or new.ENDERECO = '' then
+    raise exception 'Endereco está vazio ou nulo';
+    end if ;
+
+    if new.TELEFONE is null  or new.TELEFONE = '' then
+    raise exception 'Telefone está vazio ou nulo';
+    end if ;
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullfuncionario();
+
+
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+create or replace function notvaluesnullservico()
+returns trigger as $$
+  begin
+    if new.NOME_SERVICO is null  or new.NOME_SERVICO = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    if new.VALOR is null  or new.VALOR = '' then
+    raise exception 'Valor está vazio ou nulo';
+    end if ;
+
+    return null;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullservico();
+
+
+----------------------------------------------teste função--------------------------------------------------------------
+
+/*
+select inserir('funcionario', '''dagoberto'' ,''rua 18'',''988678877''');
+select inserir('categoria_cliente', '''platina4'',''-30''');
+select inserir('categoria_cliente', '''platina3'',''90''');
+select inserir('cliente', '''henrique'',''9098877889'',''1''');
+select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
+select inserir('servicos', '''lavar roupa'',''25''');
+select atualizar('funcionario', 'nome_funcionario', '''junior''', 'id_funcionario', '5');
+select deletar('funcionario', 'nome_funcionario', 'pablo');
+
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','PASSAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','COZINHAR');
+
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','VARRER');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','LAVAR');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','COZINHAR');
+
+select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','PASSAR');
+select criar_ordem_de_servico(3,'JOÃO', 'CHICO', 'maria', '12-12-2017', '11:30','VARRER');
+select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','LAVAR');
+
+INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
+VALUES ('BRONZE', 0.1);
+INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
+VALUES ('PRATA', 0.3);
+INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
+VALUES ('OURO', 0.5);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('JOÃO', '998500295', 1);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('PEDRO', '998657901', 2);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('RICARDO', '5132715375', 3);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('CONCEIÇÃO', '1231242615', 2);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('EDSON', '1312213333', 3);
+INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
+VALUES ('PAULO', '145345552', 1);
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('', 'AVENIDA MIGUEL ROSA', '8798787361');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('PABLO', 'AVENIDA FREI SERAFIM', '87876311312');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('CHICO', 'RUA TERESINHA', '9876546889');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('WANESSA', 'AVENIDA PIREZ DE CASTRO', '9897909876');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('DEBORA', 'RUA 100', '8798731132');
+INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
+VALUES ('JUVENAL', 'RUA 90', '9876588990');
+INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
+VALUES ('MARIA', 'BAIRRO FLORES', '123123877');
+INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
+VALUES ('JOANA', 'BAIRRO ININGA', '323131311');
+INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
+VALUES ('HELCIO', 'BAIRRO PORTO ALEGRE', '0869909888');
+INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
+VALUES ('JESSICA', 'BAIRRO HORTO', '445323113');
+INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
+VALUES ('BRUNO', 'BAIRRO DIRCEU', '123123877');
+INSERT INTO SERVICOS
+VALUES (DEFAULT, 'VARRER ', 20.00);
+INSERT INTO SERVICOS
+VALUES (DEFAULT, 'LAVAR', 20.00);
+INSERT INTO SERVICOS
+VALUES (DEFAULT, 'COZINHAR', 30.00);
+INSERT INTO SERVICOS
+VALUES (DEFAULT, 'PASSAR', 50.00);
+*/
