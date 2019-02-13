@@ -78,22 +78,51 @@ $$
 declare
   comando TEXT;
 begin
+
+  IF(NOT EXISTS(SELECT * FROM CLIENTE WHERE campo ILIKE valor_condicao) OR valor_condicao  IS NULL) THEN
+    RAISE 'CLIENTE % NÃO EXISTE NESTE BANCO DE DADOS',valor_condicao;
+
+    ELSIF (NOT EXISTS(SELECT * FROM FUNCIONARIO WHERE campo ILIKE valor_condicao) OR valor_condicao IS NULL) THEN
+    RAISE 'FUNCIONARIO % NÃO EXISTE,NESTE BANCO DE DADOS', valor_condicao;
+
+    ELSIF(NOT EXISTS(SELECT * FROM DIARISTA WHERE campo ILIKE valor_condicao) OR valor_condicao IS NULL) THEN
+    RAISE 'DIARISTA % NÃO EXISTE, NESTE BANCO DE DADOS', valor_condicao;
+
+    ELSIF(NOT EXISTS(SELECT * FROM SERVICOS WHERE campo ILIKE valor_condicao) OR valor_condicao IS NULL) THEN
+    RAISE 'SERVICO % NÃO EXISTE,NESTE BANCO DE DADOS', valor_condicao;
+    END IF;
+
   comando := 'UPDATE ' || tabela || ' SET ' || $2 || ' = ' || $3 || 'where ' || $4 || ' = ' || valor_condicao;
   execute comando;
+
+
 end;
 $$ language plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
 
 --->Delete
-create or replace function deletar(tabela text, campo text, valor
-  text)
-  returns void as
+create or replace function deletar(tabela text, campo text, valor text) returns void as
 $$
 declare
-  comando text;
+  comando text := 'delete from ' || $1 || ' where ' || $2 || '=''' || $3 || '''';
+
 begin
-  comando := 'delete from ' || $1 || ' where ' || $2 || '=''' || $3 || '''';
+   IF(NOT EXISTS(SELECT * FROM CLIENTE WHERE campo ILIKE valor) OR valor  IS NULL) THEN
+    RAISE 'CLIENTE % NÃO EXISTE NESTE BANCO DE DADOS',valor;
+
+    ELSIF (NOT EXISTS(SELECT * FROM FUNCIONARIO WHERE campo ILIKE valor) OR valor IS NULL) THEN
+    RAISE 'FUNCIONARIO % NÃO EXISTE,NESTE BANCO DE DADOS', valor;
+
+    ELSIF(NOT EXISTS(SELECT * FROM DIARISTA WHERE campo ILIKE valor) OR valor IS NULL) THEN
+    RAISE 'DIARISTA % NÃO EXISTE, NESTE BANCO DE DADOS', valor;
+
+    ELSIF(NOT EXISTS(SELECT * FROM SERVICOS WHERE campo ILIKE valor) OR valor IS NULL) THEN
+    RAISE 'SERVICO % NÃO EXISTE,NESTE BANCO DE DADOS', valor;
+    END IF;
+
   execute comando;
+
+
 end;
 $$ language plpgsql;
 ------------------------------------------------------------------------------------------------------------------------
@@ -161,6 +190,7 @@ $$
   END;
 
 $$LANGUAGE plpgsql;
+
 
 ---------------------------------------------Trigger--------------------------------------------------------------------
   -------------------------------------------feedback-------------------------------------------------------------------
@@ -330,8 +360,9 @@ CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH 
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
-
+*/
 -----------------------------------------------------------------------------------------------------------------------------------
+
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
 create or replace function notvaluesnullcategoriacliente()
 returns trigger as $$
@@ -343,7 +374,7 @@ returns trigger as $$
     if new.DESCONTO is null  or new.DESCONTO = '' then
     raise exception 'Desconto está vazio ou nulo';
     end if ;
-    return null;
+    return new;
   end;
 
   $$language plpgsql;
@@ -351,6 +382,7 @@ returns trigger as $$
 create  trigger notnullcategoriacliente before insert or update on CATEGORIA_CLIENTE  FOR EACH ROW
 EXECUTE PROCEDURE notvaluesnullcategoriacliente();
 ------------------------------------------------------------------------------------------------------------------------
+
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CLIENTE
 create or replace function notvaluesnullcliente()
 returns trigger as $$
@@ -363,12 +395,12 @@ returns trigger as $$
     raise exception 'Telefone está vazio ou nulo';
     end if ;
 
-    if new.CATEGORIA_CLIENTE is null  or new.CATEGORIA_CLIENTE = '' then
+    if new.ID_CATEGORIA_CLIENTE is null  or new.ID_CATEGORIA_CLIENTE = '' then
     raise exception 'Categoria do cliente está vazio ou nulo';
     end if ;
 
 
-    return null;
+    return new;
   end;
 
   $$language plpgsql;
@@ -391,7 +423,7 @@ returns trigger as $$
     raise exception 'Telefone está vazio ou nulo';
     end if ;
 
-    return null;
+    return new;
   end;
   $$language plpgsql;
 
@@ -412,7 +444,7 @@ returns trigger as $$
     if new.TELEFONE is null  or new.TELEFONE = '' then
     raise exception 'Telefone está vazio ou nulo';
     end if ;
-    return null;
+    return new;
   end;
 
   $$language plpgsql;
@@ -428,11 +460,11 @@ returns trigger as $$
     raise exception 'Nome está vazio ou nulo';
     end if ;
 
-    if new.VALOR is null  or new.VALOR = '' then
+    if new.VALOR_SERVICO is null  or new.VALOR_SERVICO = '' then
     raise exception 'Valor está vazio ou nulo';
     end if ;
 
-    return null;
+    return new;
   end;
 
   $$language plpgsql;
@@ -442,15 +474,18 @@ create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW
 
 ----------------------------------------------teste função--------------------------------------------------------------
 
-/*
-select inserir('funcionario', '''dagoberto'' ,''rua 18'',''988678877''');
+select inserir('funcionario', '''daboberto5'' ,''Rua do sucesso'',''988678877''');
+select inserir('funcionario', '''pablo'' ,''rua 18'',''988678877''');
 select inserir('categoria_cliente', '''platina4'',''-30''');
-select inserir('categoria_cliente', '''platina3'',''90''');
+select inserir('categoria_cliente', '''platina3'',''90.00''');
 select inserir('cliente', '''henrique'',''9098877889'',''1''');
 select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
-select inserir('servicos', '''lavar roupa'',''25''');
+select inserir('servicos', '''lavar roupa'',''25.00''');
 select atualizar('funcionario', 'nome_funcionario', '''junior''', 'id_funcionario', '5');
-select deletar('funcionario', 'nome_funcionario', 'pablo');
+select deletar('funcionario', 'nome_funcionario', 'daGoberto5');
+select deletar('cliente', 'nome_cliente', 'henrique');
+
+delete from funcionario where nome_funcionario ilike 'pablo'
 
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','PASSAR');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
@@ -468,7 +503,7 @@ select criar_ordem_de_servico(3,'JOÃO', 'CHICO', 'maria', '12-12-2017', '11:30'
 select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','LAVAR');
 
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('BRONZE', 0.1);
+VALUES (NULL, NULL);
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
 VALUES ('PRATA', 0.3);
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
