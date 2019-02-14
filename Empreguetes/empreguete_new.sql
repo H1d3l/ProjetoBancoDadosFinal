@@ -155,6 +155,9 @@ $$
 
     ELSIF(NOT EXISTS(SELECT * FROM SERVICOS WHERE NOME_SERVICO ILIKE NOME_SERV) OR NOME_SERV IS NULL) THEN
     RAISE 'SERVICO % NÃO EXISTENTE, CADASTRE PRIMEIRO O SERVICO', NOME_SERV;
+
+    ELSEIF DATA<CURRENT_DATE THEN RAISE 'A DATA NAO PODE SER INFERIOR A DATA DE HOJE';
+
     END IF;
 
     SELECT ID_CLIENTE, ID_CATEGORIA_CLIENTE INTO var_id_cliente, var_id_categoria FROM CLIENTE WHERE NOME_CLIENTE ILIKE NOME_CLI;
@@ -179,7 +182,7 @@ $$
             = ID_ORDEM_DE_SERVICO) WHERE ID_ORDEM_DE_SERVICO = ID_ORDEM_SERV;
           RETURN 'MAIS UM SERVICO ADICIONADO A ORDEM DE SERVICO';
         ELSE
-          INSERT INTO ORDEM_DE_SERVICO VALUES($1,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,preco_total,'AGENDADO');
+          INSERT INTO ORDEM_DE_SERVICO VALUES($1,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,var_valor_servico,'AGENDADO');
           INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,$1,var_id_servico,var_valor_servico);
           RETURN 'SOLICITACAO DA ORDEM DE SERVICO INICIADO';
         END IF;
@@ -360,10 +363,12 @@ CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH 
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
-*/
+
 -----------------------------------------------------------------------------------------------------------------------------------
 
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
+--Identificado bug ao tentar verificar valor do desconto.
+/*
 create or replace function notvaluesnullcategoriacliente()
 returns trigger as $$
   begin
@@ -381,8 +386,9 @@ returns trigger as $$
 
 create  trigger notnullcategoriacliente before insert or update on CATEGORIA_CLIENTE  FOR EACH ROW
 EXECUTE PROCEDURE notvaluesnullcategoriacliente();
+*/
 ------------------------------------------------------------------------------------------------------------------------
-
+/*
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CLIENTE
 create or replace function notvaluesnullcliente()
 returns trigger as $$
@@ -406,6 +412,7 @@ returns trigger as $$
   $$language plpgsql;
 
 create  trigger notnullcliente before insert or update on CLIENTE  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullcliente();
+*/
 -------------------------------------------------------------------------------------------------------------------------
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE DIARISTA
 create or replace function notvaluesnulldiarista()
@@ -453,6 +460,8 @@ create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW
 
 
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+--Identificado bug ao tentar verificar valor do servico.
+/*
 create or replace function notvaluesnullservico()
 returns trigger as $$
   begin
@@ -471,24 +480,23 @@ returns trigger as $$
 
 create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullservico();
 
-
+*/
 ----------------------------------------------teste função--------------------------------------------------------------
-
-select inserir('funcionario', '''daboberto5'' ,''Rua do sucesso'',''988678877''');
+/*
+select inserir('funcionario', '''PABLO'' ,''Rua do sucesso'',''988678877''');
 select inserir('funcionario', '''pablo'' ,''rua 18'',''988678877''');
 select inserir('categoria_cliente', '''platina4'',''-30''');
 select inserir('categoria_cliente', '''platina3'',''90.00''');
-select inserir('cliente', '''henrique'',''9098877889'',''1''');
-select inserir('diarista', '''paula'',''bairro dirceu'',''1234567777''');
-select inserir('servicos', '''lavar roupa'',''25.00''');
+select inserir('cliente', '''EDSON'',''9098877889'',''1''');
+select inserir('diarista', '''MARIA'',''bairro dirceu'',''1234567777''');
+select inserir('servicos', '''LAVAR'',''25.00''');
 select atualizar('funcionario', 'nome_funcionario', '''junior''', 'id_funcionario', '5');
 select deletar('funcionario', 'nome_funcionario', 'daGoberto5');
 select deletar('cliente', 'nome_cliente', 'henrique');
 
-delete from funcionario where nome_funcionario ilike 'pablo'
 
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','PASSAR');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','PASSAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','LAVAR');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','COZINHAR');
 
