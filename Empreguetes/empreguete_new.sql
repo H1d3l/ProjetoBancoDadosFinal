@@ -30,11 +30,16 @@ CREATE TABLE DIARISTA
   ENDERECO      VARCHAR(200) NOT NULL,
   TELEFONE      VARCHAR(30)  NOT NULL
 );
+
 CREATE TABLE SERVICOS
 (
   ID_SERVICO    SERIAL UNIQUE PRIMARY KEY,
   NOME_SERVICO  VARCHAR(100) NOT NULL,
   VALOR_SERVICO FLOAT        NOT NULL
+);
+CREATE TABLE DIARISTA_SERVICO(
+  ID_DIARISTA INT REFERENCES DIARISTA(ID_DIARISTA),
+  ID_SERVICO INT REFERENCES SERVICOS(ID_SERVICO)
 );
 CREATE TABLE ORDEM_DE_SERVICO
 (
@@ -172,6 +177,14 @@ $$
 
     preco_total:= var_valor_servico - (var_valor_servico*var_valor_desconto);
 
+    IF (NOT EXISTS(SELECT * FROM DIARISTA NATURAL JOIN DIARISTA_SERVICO NATURAL JOIN SERVICOS
+      WHERE ID_DIARISTA = var_id_diarista AND ID_SERVICO = var_id_servico)) THEN RAISE
+        'ESSA DIARISTA NAO DESEMPENHA ESSE SERVICO. FACA OUTRA ORDEM DE '
+        'SERVICO PARA ESTE SERVICO OU PROCURE UMA DIARISTA'
+        'QUE DESEMPENHA AMBOS OS SERVICOS';
+    END IF ;
+
+
 
       IF (NOME_CLI IS NOT NULL AND NOME_FUN IS NOT NULL AND NOME_SERV IS NOT NULL) THEN
         IF (EXISTS(SELECT * FROM ORDEM_DE_SERVICO WHERE ID_ORDEM_DE_SERVICO=ID_ORDEM_SERV)) THEN
@@ -194,10 +207,9 @@ $$
 
 $$LANGUAGE plpgsql;
 
-
 ---------------------------------------------Trigger--------------------------------------------------------------------
   -------------------------------------------feedback-------------------------------------------------------------------
-
+/*
 CREATE OR REPLACE FUNCTION FEEDBACK_OPERACAO() RETURNS TRIGGER AS
 $$
 DECLARE
@@ -363,7 +375,7 @@ CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH 
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
-
+*/
 -----------------------------------------------------------------------------------------------------------------------------------
 
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
@@ -482,11 +494,11 @@ create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW
 
 */
 ----------------------------------------------teste função--------------------------------------------------------------
-/*
+
 select inserir('funcionario', '''PABLO'' ,''Rua do sucesso'',''988678877''');
 select inserir('funcionario', '''pablo'' ,''rua 18'',''988678877''');
 select inserir('categoria_cliente', '''platina4'',''-30''');
-select inserir('categoria_cliente', '''platina3'',''90.00''');
+select inserir('categoria_cliente', '''platina'',''0.1''');
 select inserir('cliente', '''EDSON'',''9098877889'',''1''');
 select inserir('diarista', '''MARIA'',''bairro dirceu'',''1234567777''');
 select inserir('servicos', '''LAVAR'',''25.00''');
@@ -495,8 +507,8 @@ select deletar('funcionario', 'nome_funcionario', 'daGoberto5');
 select deletar('cliente', 'nome_cliente', 'henrique');
 
 
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','PASSAR');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','LAVAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','COZINHAR');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'MARIA', '14-02-2019', '12:30','VARRER');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','COZINHAR');
 
@@ -558,4 +570,11 @@ INSERT INTO SERVICOS
 VALUES (DEFAULT, 'COZINHAR', 30.00);
 INSERT INTO SERVICOS
 VALUES (DEFAULT, 'PASSAR', 50.00);
+INSERT INTO DIARISTA_SERVICO VALUES (1,1);
+INSERT INTO DIARISTA_SERVICO VALUES (2,2);
+INSERT INTO DIARISTA_SERVICO VALUES (3,3);
+INSERT INTO DIARISTA_SERVICO VALUES (1,2);
+INSERT INTO DIARISTA_SERVICO VALUES (2,3);
+
+
 */
