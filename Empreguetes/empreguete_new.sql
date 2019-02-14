@@ -5,7 +5,7 @@ CREATE TABLE CATEGORIA_CLIENTE
 (
   ID_CATEGORIA   SERIAL UNIQUE PRIMARY KEY,
   NOME_CATEGORIA VARCHAR(100) NOT NULL,
-  DESCONTO       FLOAT        NOT NULL
+  DESCONTO       INT        NOT NULL
 );
 
 CREATE TABLE CLIENTE
@@ -50,6 +50,7 @@ CREATE TABLE ORDEM_DE_SERVICO
   DATA                DATE  NOT NULL,
   HORA                TIME  NOT NULL,
   VALOR_TOTAL         FLOAT NOT NULL,
+  ENDERECO            VARCHAR(100),
   STATUS              VARCHAR(100)
 );
 
@@ -135,7 +136,7 @@ $$ language plpgsql;
 
 --------------> CRIAR ORDEM DE SERVIÇO:
 CREATE OR REPLACE FUNCTION criar_ordem_de_servico (ID_ORDEM_SERV INT ,NOME_CLI VARCHAR(100), NOME_FUN VARCHAR(100),NOME_DIA VARCHAR(100),
-DATA date,HORA time,NOME_SERV VARCHAR(100)) RETURNS TEXT AS
+DATA_V date,HORA time,NOME_SERV VARCHAR(100),ENDERECO VARCHAR(100)) RETURNS TEXT AS
 $$
 
   DECLARE
@@ -161,7 +162,7 @@ $$
     ELSIF(NOT EXISTS(SELECT * FROM SERVICOS WHERE NOME_SERVICO ILIKE NOME_SERV) OR NOME_SERV IS NULL) THEN
     RAISE 'SERVICO % NÃO EXISTENTE, CADASTRE PRIMEIRO O SERVICO', NOME_SERV;
 
-    ELSEIF DATA<CURRENT_DATE THEN RAISE 'A DATA NAO PODE SER INFERIOR A DATA DE HOJE';
+    ELSEIF DATA_V<CURRENT_DATE THEN RAISE 'A DATA NAO PODE SER INFERIOR A DATA DE HOJE';
 
     END IF;
 
@@ -175,7 +176,7 @@ $$
 
     SELECT DESCONTO INTO var_valor_desconto FROM CATEGORIA_CLIENTE WHERE ID_CATEGORIA = var_id_categoria;
 
-    preco_total:= var_valor_servico - (var_valor_servico*var_valor_desconto);
+    preco_total:= var_valor_servico - (var_valor_servico*(var_valor_desconto/100));
 
     IF (NOT EXISTS(SELECT * FROM DIARISTA NATURAL JOIN DIARISTA_SERVICO NATURAL JOIN SERVICOS
       WHERE ID_DIARISTA = var_id_diarista AND ID_SERVICO = var_id_servico)) THEN RAISE
@@ -188,14 +189,17 @@ $$
 
       IF (NOME_CLI IS NOT NULL AND NOME_FUN IS NOT NULL AND NOME_SERV IS NOT NULL) THEN
         IF (EXISTS(SELECT * FROM ORDEM_DE_SERVICO WHERE ID_ORDEM_DE_SERVICO=ID_ORDEM_SERV)) THEN
+          IF DATA_V <> (SELECT DATA FROM ORDEM_DE_SERVICO WHERE ID_ORDEM_DE_SERVICO=ID_ORDEM_SERV ) THEN
+            RAISE 'NAO PERMITIDO ESSA OPERACAO POIS A DATA ESTA DIFERENTE. POR FAVOR CRIA ORDEM DE SERVICO.';
+          end if;
 
           INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,ID_ORDEM_SERV,var_id_servico,var_valor_servico);
 
-          UPDATE ORDEM_DE_SERVICO SET VALOR_TOTAL = (SELECT SUM(VALOR)-(SUM(VALOR)*var_valor_desconto) FROM ITEM_ORDEM_DE_SERVICO WHERE ID_ORDEM_SERV
+          UPDATE ORDEM_DE_SERVICO SET VALOR_TOTAL = (SELECT sum(VALOR)-(SUM(VALOR)*var_valor_desconto/100) FROM ITEM_ORDEM_DE_SERVICO WHERE ID_ORDEM_SERV
             = ID_ORDEM_DE_SERVICO) WHERE ID_ORDEM_DE_SERVICO = ID_ORDEM_SERV;
           RETURN 'MAIS UM SERVICO ADICIONADO A ORDEM DE SERVICO';
         ELSE
-          INSERT INTO ORDEM_DE_SERVICO VALUES($1,var_id_cliente,var_id_funcionario,var_id_diarista,DATA,HORA,var_valor_servico,'AGENDADO');
+          INSERT INTO ORDEM_DE_SERVICO VALUES($1,var_id_cliente,var_id_funcionario,var_id_diarista,DATA_V,HORA,preco_total,ENDERECO,'AGENDADO');
           INSERT INTO ITEM_ORDEM_DE_SERVICO VALUES(DEFAULT,$1,var_id_servico,var_valor_servico);
           RETURN 'SOLICITACAO DA ORDEM DE SERVICO INICIADO';
         END IF;
@@ -209,7 +213,6 @@ $$LANGUAGE plpgsql;
 
 ---------------------------------------------Trigger--------------------------------------------------------------------
   -------------------------------------------feedback-------------------------------------------------------------------
-/*
 CREATE OR REPLACE FUNCTION FEEDBACK_OPERACAO() RETURNS TRIGGER AS
 $$
 DECLARE
@@ -375,12 +378,15 @@ CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CLIENTE FOR EACH 
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON FUNCIONARIO FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON SERVICOS FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
 CREATE TRIGGER verifica_duplicidade BEFORE INSERT OR UPDATE ON CATEGORIA_CLIENTE FOR EACH ROW EXECUTE PROCEDURE verifica_duplicidade();
-*/
+
 -----------------------------------------------------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------------------------------------------------
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CATEGORIA CLIENTE
 --Identificado bug ao tentar verificar valor do desconto.
-/*
 create or replace function notvaluesnullcategoriacliente()
 returns trigger as $$
   begin
@@ -388,9 +394,6 @@ returns trigger as $$
     raise exception 'Nome da categoria está vazio ou nulo';
     end if ;
 
-    if new.DESCONTO is null  or new.DESCONTO = '' then
-    raise exception 'Desconto está vazio ou nulo';
-    end if ;
     return new;
   end;
 
@@ -398,9 +401,7 @@ returns trigger as $$
 
 create  trigger notnullcategoriacliente before insert or update on CATEGORIA_CLIENTE  FOR EACH ROW
 EXECUTE PROCEDURE notvaluesnullcategoriacliente();
-*/
-------------------------------------------------------------------------------------------------------------------------
-/*
+
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE CLIENTE
 create or replace function notvaluesnullcliente()
 returns trigger as $$
@@ -413,19 +414,31 @@ returns trigger as $$
     raise exception 'Telefone está vazio ou nulo';
     end if ;
 
-    if new.ID_CATEGORIA_CLIENTE is null  or new.ID_CATEGORIA_CLIENTE = '' then
-    raise exception 'Categoria do cliente está vazio ou nulo';
-    end if ;
-
-
     return new;
   end;
 
   $$language plpgsql;
 
 create  trigger notnullcliente before insert or update on CLIENTE  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullcliente();
-*/
--------------------------------------------------------------------------------------------------------------------------
+-------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
+--Identificado bug ao tentar verificar valor do servico.
+
+create or replace function notvaluesnullservico()
+returns trigger as $$
+  begin
+    if new.NOME_SERVICO is null  or new.NOME_SERVICO = '' then
+    raise exception 'Nome está vazio ou nulo';
+    end if ;
+
+    return new;
+  end;
+
+  $$language plpgsql;
+
+create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullservico();
+
+
+
 -------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE DIARISTA
 create or replace function notvaluesnulldiarista()
 returns trigger as $$
@@ -471,34 +484,39 @@ returns trigger as $$
 create  trigger notnullfunc before insert or update on funcionario  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullfuncionario();
 
 
--------TRIGGER NAO ACEITA VALORES NULOS OU VAZIOS DE FUNCIONARIOS
---Identificado bug ao tentar verificar valor do servico.
-/*
-create or replace function notvaluesnullservico()
-returns trigger as $$
+CREATE OR REPLACE function verifica_hora () returns trigger as
+ $$
   begin
-    if new.NOME_SERVICO is null  or new.NOME_SERVICO = '' then
-    raise exception 'Nome está vazio ou nulo';
-    end if ;
+    IF NEW.HORA BETWEEN '09:00' AND '16:00' THEN
+      return new;
+    end if;
+    raise 'Horario nao permitido para agendamento';
 
-    if new.VALOR_SERVICO is null  or new.VALOR_SERVICO = '' then
-    raise exception 'Valor está vazio ou nulo';
-    end if ;
-
-    return new;
   end;
 
   $$language plpgsql;
 
-create  trigger notnullservico before insert or update on SERVICOS  FOR EACH ROW EXECUTE PROCEDURE notvaluesnullservico();
+CREATE TRIGGER verifica_hora  before insert or update on ORDEM_DE_SERVICO  FOR EACH ROW EXECUTE PROCEDURE verifica_hora();
 
-*/
+
+
+----------------------------------------------------VIEW--------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW ordem_servico_formatado AS
+SELECT ID_ORDEM_DE_SERVICO,NOME_CLIENTE,NOME_DIARISTA,NOME_FUNCIONARIO,OS.ENDERECO,OS.STATUS,OS.VALOR_TOTAL FROM ORDEM_DE_SERVICO OS INNER JOIN CLIENTE C ON C.id_cliente = OS.id_cliente
+  INNER JOIN DIARISTA D ON D.ID_DIARISTA = OS.ID_DIARISTA INNER JOIN FUNCIONARIO F ON OS.ID_FUNCIONARIO = F.ID_FUNCIONARIO;
+
+CREATE OR REPLACE VIEW total_ordem_servico as
+  select sum(valor_total) from ORDEM_DE_SERVICO;
+
+SELECT NOME_CLIENTE FROM ordem_servico_formatado WHERE NOME_CLIENTE ILIKE 'EDSON';
+
 ----------------------------------------------teste função--------------------------------------------------------------
-
+/*
 select inserir('funcionario', '''PABLO'' ,''Rua do sucesso'',''988678877''');
 select inserir('funcionario', '''pablo'' ,''rua 18'',''988678877''');
 select inserir('categoria_cliente', '''platina4'',''-30''');
-select inserir('categoria_cliente', '''platina'',''0.1''');
+select inserir('categoria_cliente', '''platina'',''10''');
 select inserir('cliente', '''EDSON'',''9098877889'',''1''');
 select inserir('diarista', '''MARIA'',''bairro dirceu'',''1234567777''');
 select inserir('servicos', '''LAVAR'',''25.00''');
@@ -507,27 +525,35 @@ select deletar('funcionario', 'nome_funcionario', 'daGoberto5');
 select deletar('cliente', 'nome_cliente', 'henrique');
 
 
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '14-02-2019', '12:30','COZINHAR');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'MARIA', '14-02-2019', '12:30','VARRER');
-select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '16-02-2019', '12:31','VARRER','RUA 18');
+select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '16-02-2019', '12:31','lavar','Rua 18');
 select criar_ordem_de_servico(1,'edson', 'pablo', 'maria', '12-12-2018', '12:30','COZINHAR');
 
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2018', '12:30','LAVAR');
-select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2018', '12:30','VARRER');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '20-02-2019', '12:30','LAVAR','RUA 20');
+select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '20-02-2019', '12:30','VARRER','RUA 2');
 select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','VARRER');
 select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','LAVAR');
 select criar_ordem_de_servico(2,'pedro', 'pablo', 'maria', '12-12-2019', '11:30','COZINHAR');
 
 select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','PASSAR');
-select criar_ordem_de_servico(3,'JOÃO', 'CHICO', 'maria', '12-12-2017', '11:30','VARRER');
+select criar_ordem_de_servico(2,'JOÃO', 'CHICO', 'maria', '12-12-2017', '11:30','VARRER','CAXIAS');
 select criar_ordem_de_servico(3,'JOÃO', 'pablo', 'maria', '12-12-2017', '11:30','LAVAR');
+
+SELECT cancelar_ordem_de_servico(1);
+SELECT alterar_status('REALIZADO',1);
+SELECT * FROM ordem_servico_formatado;
+SELECT * FROM total_ordem_servico;
 
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
 VALUES (NULL, NULL);
+
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('PRATA', 0.3);
+VALUES ('BRONZE', 10);
 INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
-VALUES ('OURO', 0.5);
+VALUES ('PRATA', 20);
+INSERT INTO CATEGORIA_CLIENTE(NOME_CATEGORIA, DESCONTO)
+VALUES ('OURO', 30);
+
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
 VALUES ('JOÃO', '998500295', 1);
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
@@ -540,8 +566,7 @@ INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
 VALUES ('EDSON', '1312213333', 3);
 INSERT INTO CLIENTE(NOME_CLIENTE, TELEFONE, ID_CATEGORIA_CLIENTE)
 VALUES ('PAULO', '145345552', 1);
-INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
-VALUES ('', 'AVENIDA MIGUEL ROSA', '8798787361');
+
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
 VALUES ('PABLO', 'AVENIDA FREI SERAFIM', '87876311312');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
@@ -552,6 +577,7 @@ INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
 VALUES ('DEBORA', 'RUA 100', '8798731132');
 INSERT INTO FUNCIONARIO(NOME_FUNCIONARIO, ENDERECO, TELEFONE)
 VALUES ('JUVENAL', 'RUA 90', '9876588990');
+
 INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
 VALUES ('MARIA', 'BAIRRO FLORES', '123123877');
 INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
@@ -562,19 +588,21 @@ INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
 VALUES ('JESSICA', 'BAIRRO HORTO', '445323113');
 INSERT INTO DIARISTA(NOME_DIARISTA, ENDERECO, TELEFONE)
 VALUES ('BRUNO', 'BAIRRO DIRCEU', '123123877');
+
 INSERT INTO SERVICOS
-VALUES (DEFAULT, 'VARRER ', 20.00);
+VALUES (DEFAULT, 'VARRER', 20.00);
 INSERT INTO SERVICOS
 VALUES (DEFAULT, 'LAVAR', 20.00);
 INSERT INTO SERVICOS
 VALUES (DEFAULT, 'COZINHAR', 30.00);
 INSERT INTO SERVICOS
 VALUES (DEFAULT, 'PASSAR', 50.00);
+
 INSERT INTO DIARISTA_SERVICO VALUES (1,1);
+INSERT INTO DIARISTA_SERVICO VALUES (1,2);
 INSERT INTO DIARISTA_SERVICO VALUES (2,2);
 INSERT INTO DIARISTA_SERVICO VALUES (3,3);
-INSERT INTO DIARISTA_SERVICO VALUES (1,2);
-INSERT INTO DIARISTA_SERVICO VALUES (2,3);
 
 
 */
+
